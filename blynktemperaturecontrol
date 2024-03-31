@@ -1,0 +1,83 @@
+#define BLYNK_TEMPLATE_ID "TMPL6jnDaqwP8"
+#define BLYNK_TEMPLATE_NAME "Quickstart Template"
+#define BLYNK_AUTH_TOKEN "LxVG5eBQS3ApwRUch1T3yVzmYdyk-Naq"
+
+#define BLYNK_PRINT Serial
+
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <DHT.h>
+#include <BlynkSimpleEsp8266.h>
+
+const char* ssid = "Moto G Fast";
+const char* pass = "asadkhan"; 
+
+#define blueled D2
+#define orangeled D1
+#define greenled D3
+#define DHTPIN D5
+#define fan D7
+int fanstate = digitalRead(fan);
+int pinValue;
+DHT dht(DHTPIN, DHT11);
+
+BlynkTimer timer;
+
+BLYNK_WRITE(V4)
+{
+  pinValue = param.asInt();
+  Serial.println(pinValue);
+}
+
+void setup() {
+    Serial.begin(9600);
+  dht.begin();
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  pinMode(orangeled, OUTPUT);
+  pinMode(greenled, OUTPUT);
+  pinMode(blueled, OUTPUT);
+  pinMode(fan, OUTPUT);
+  pinMode(D0, INPUT);
+  timer.setInterval(1000L, working);
+}
+
+void working() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  
+  if (isnan(h) || isnan(t)) {
+    digitalWrite(greenled, LOW);
+    Serial.println("Failed to read from DHT sensor!");
+      for (;;)
+      ;
+    return;
+  }
+  
+  else {
+    digitalWrite(greenled, HIGH);
+    Serial.print("Temperature: ");
+    Serial.print(t);
+    Serial.print(" degrees Celcius, Humidity: ");
+    Serial.println(h);
+    Blynk.virtualWrite(V5, t);
+    Blynk.virtualWrite(V6, h);
+    Blynk.virtualWrite(V7, fanstate);
+  }
+
+  if ((t > 36) || (pinValue == 1)) {
+    digitalWrite(blueled, HIGH);
+    digitalWrite(orangeled, LOW);
+    digitalWrite(fan, HIGH);
+    fanstate = HIGH;
+  } else {
+    digitalWrite(blueled, LOW);
+    digitalWrite(orangeled, HIGH);
+    digitalWrite(fan, LOW);
+    fanstate = LOW;
+  }
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}
